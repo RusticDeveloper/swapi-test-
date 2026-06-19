@@ -30,7 +30,7 @@ jobs:
       - name: Ejecutar verificación de Django
         run: |
           python manage.py check
-      # ejcutabanaa
+      # ejecuta pruebas unitarias
       - name: Ejecutar Pruebas Unitarias (Tests)
         run: |
           python manage.py test
