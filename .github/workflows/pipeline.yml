@@ -1,0 +1,32 @@
+name: CI de mi Juego DBZ Django
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  pruebas-codigo:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Clonar el proyecto en la máquina virtual
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      # 2. Instalar Python en la máquina virtual de GitHub
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          # Asegúrate de que coincida con tu versión de Python
+
+      # 3. Instalar las librerías del archivo requirements.txt
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 4. El Inspector de Django: Revisa que no haya errores de configuración o sintaxis
+      - name: Ejecutar verificación de Django
+        run: |
+          python manage.py check
