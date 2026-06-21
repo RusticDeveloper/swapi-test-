@@ -1,0 +1,76 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>{% block title %}DBZ BATALLA DE PERSONAJES{% endblock %}</title>
+
+        <script src="https://cdn.tailwindcss.com"></script>
+
+        <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
+        <script
+            defer
+            src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.x.x/dist/cdn.min.js"
+        ></script>
+        <script
+            defer
+            src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
+        ></script>
+
+        <style>
+            /* Ajuste rápido para tipografía oscura o fondos estables estilo DBZ */
+            body {
+                background-color: #0b0f19;
+                color: #f3f4f6;
+            }
+        </style>
+    </head>
+    <body class="min-h-screen flex flex-col justify-between">
+        <nav class="bg-gray-900 border-b border-gray-800 p-4">
+            <div class="container mx-auto flex justify-between items-center">
+                <a
+                    href="/"
+                    class="text-xl font-bold text-yellow-500 tracking-wider"
+                    >DBZ CARD BATTLE</a
+                >
+                <div class="space-x-6">
+                    <a href="/" class="hover:text-yellow-400 transition"
+                        >Inicio</a
+                    >
+                    <a href="/jugar/" class="hover:text-yellow-400 transition"
+                        >Juego</a
+                    >
+                    <a
+                        href="/personajes/"
+                        class="hover:text-yellow-400 transition"
+                        >Personajes</a
+                    >
+                    <a
+                        href="/rankings/"
+                        class="hover:text-yellow-400 transition"
+                        >Rankings</a
+                    >
+                    <a
+                        href="/acerca-de/"
+                        class="hover:text-yellow-400 transition"
+                        >Acerca de</a
+                    >
+                </div>
+            </div>
+        </nav>
+
+        <main class="container mx-auto flex-grow p-6">
+            {% block content %} {% endblock %}
+        </main>
+
+        <footer
+            class="bg-gray-900 border-t border-gray-800 text-center p-4 text-sm text-gray-500"
+        >
+            Datos provistos por DBZ API | Desarrollado con el Mighty Stack 🐍
+        </footer>
+    </body>
+</html>

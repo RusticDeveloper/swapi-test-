@@ -16,10 +16,12 @@ Including another URLconf
 """
 
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import include, path
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    # Redirigimos todo lo que vaya a /cartas/ hacia nuestra app modular
-    path("cartas/", include("apps.cartas.urls")),
+    # 1. El motor del juego (Tablero y API interna de cartas)
+    path("", include("apps.game.urls")),
+    # 2. Las páginas del portal (Inicio, Acerca de, Rankings)
+    path("", include("apps.pages.urls")),
 ]
