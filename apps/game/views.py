@@ -9,7 +9,7 @@ def vista_juego(request):
     """
     Tablero de Batalla principal (Interfaz estilo Yu-Gi-Oh!).
     """
-    return render(request, "juego/tablero.html")
+    return render(request, "game/tablero.html")
 
 
 def vista_personajes(request):
