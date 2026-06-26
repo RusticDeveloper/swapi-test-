@@ -1,0 +1,55 @@
+<div
+    class="bg-gray-950/80 border border-gray-900 rounded-2xl flex-grow grid grid-rows-2 p-4 gap-4 relative shadow-2xl"
+>
+    <div
+        class="grid grid-cols-5 gap-2 border-b border-gray-900/30 pb-1 items-center justify-items-center"
+    >
+        <template x-for="carta in campo_cpu" :key="carta.uid">
+            <div
+                @click="atacarObjetivo(carta)"
+                :class="guerrero_atacante ? 'border-red-500 bg-red-950/20 scale-105 cursor-crosshair ring-2 ring-red-500' : 'border-gray-800 bg-gray-900'"
+                class="w-full max-w-[95px] border p-1.5 rounded-xl text-center transition-all duration-300 shadow-md"
+            >
+                <img :src="carta.image" class="h-12 mx-auto object-contain" />
+                <p
+                    class="font-bold text-gray-300 truncate text-[9px] mt-1"
+                    x-text="carta.name"
+                ></p>
+                <p
+                    class="text-[8px] text-red-400 font-mono font-bold"
+                    x-text="'ATK: ' + carta.atk"
+                ></p>
+            </div>
+        </template>
+
+        <template x-if="campo_cpu.length === 0">
+            <div
+                @click="atacarObjetivo(null)"
+                :class="guerrero_atacante ? 'border-red-500/50 bg-red-950/10 cursor-crosshair animate-pulse' : 'border-transparent'"
+                class="col-span-5 w-full py-4 text-center text-[10px] text-gray-600 font-mono uppercase tracking-wider"
+            >
+                💥 Campo libre. ¡Haz clic para ataque directo!
+            </div>
+        </template>
+    </div>
+
+    <div class="grid grid-cols-5 gap-2 items-center justify-items-center">
+        <template x-for="carta in campo_jugador" :key="carta.uid">
+            <div
+                @click="seleccionarAtacante(carta)"
+                :class="guerrero_atacante && guerrero_atacante.uid === carta.uid ? 'border-amber-400 ring-2 ring-amber-400/60 bg-amber-950/10' : 'border-green-600/40 bg-gray-900 hover:border-amber-500'"
+                class="w-full max-w-[95px] border p-1.5 rounded-xl text-center cursor-pointer transition-all duration-300 shadow-md"
+            >
+                <img :src="carta.image" class="h-12 mx-auto object-contain" />
+                <p
+                    class="font-bold text-gray-300 truncate text-[9px] mt-1"
+                    x-text="carta.name"
+                ></p>
+                <p
+                    class="text-[8px] text-green-400 font-mono font-bold"
+                    x-text="'ATK: ' + carta.atk"
+                ></p>
+            </div>
+        </template>
+    </div>
+</div>

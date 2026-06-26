@@ -1,197 +1,184 @@
-{% extends 'base.html' %} {% block title %}Arena de Batalla - DBZ Card Battle
-{%endblock %} {% block content %}
+{% extends 'base.html' %} {% load static %} {% block title %}Arena de Batalla -
+DBZ Card Battle{% endblock %} {% block content %}
 <div
-    class="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-140px)]"
+    class="flex flex-col xl:flex-row gap-4 w-full px-4 pb-10 min-h-[85vh] select-none"
     x-data="{
-        player_lp: $persist(8000),
-        cpu_lp: $persist(8000),
-        historial: $persist(['¡La batalla ha comenzado!']),
+        player_lp: $persist(30000),
+        cpu_lp: $persist(30000),
+        turno: $persist(1),
+        esferas_max: $persist(1),
+        esferas_actuales: $persist(1),
+        historial: $persist(['¡Listo para el combate!']),
         mano: [],
+        mazo_jugador: [],  // Añadimos tu propio mazo
+        mazo_cpu: [],
+        campo_jugador: [],
+        campo_cpu: [],
+        cementerio: [],
         loading: false,
+        guerrero_atacante: null,
+
+        reiniciarMecanicas() {
+            localStorage.clear(); // Esto limpia todo el historial guardado
+            this.player_lp = 30000;
+            this.cpu_lp = 30000;
+            this.turno = 1;
+            this.esferas_max = 1;
+            this.esferas_actuales = 1;
+            this.campo_jugador = [];
+            this.campo_cpu = [];
+            this.mano = [];
+            this.guerrero_atacante = null;
+            this.historial = ['¡Partida reiniciada! ¡Listo para el combate!'];
+        },
 
         async cargarMazo() {
             this.loading = true;
+
+            // 1. Limpiamos el almacenamiento local (localStorage) ANTES de pedir cartas nuevas
+            localStorage.clear();
+
             try {
                 let res = await fetch('/juego/api/mazo/');
                 let data = await res.json();
                 if(data.status === 'success') {
-                    // Tomamos las primeras 5 cartas para la mano inicial
-                    this.mano = data.cartas.slice(0, 5);
-                    this.historial.unshift('Mazo descargado desde la API. Robas 5 cartas.');
+                    // 2. Reseteamos los valores a cero
+                    this.reiniciarMecanicas();
+
+                    // 3. Asignamos los mazos nuevos
+                    this.mano = data.cartas.slice(0, 7);
+                    this.mazo_jugador = data.cartas.slice(7, 17);
+                    this.mazo_cpu = data.cartas.slice(17, 35);
+
+                    this.historial = ['🔮 ¡Cartas cargadas y partida nueva iniciada!'];
+                    this.turnoCPU();
                 }
             } catch(e) {
-                this.historial.unshift('Error al conectar con la API de DBZ.');
+                this.historial.unshift('❌ Error al conectar con la API.');
             }
             this.loading = false;
         },
 
-        reiniciarPartida() {
-            this.player_lp = 8000;
-            this.cpu_lp = 8000;
-            this.historial = ['Partida reiniciada. ¡Listo para el combate!'];
-            this.mano = [];
+        invocarA(carta) {
+            if (this.esferas_actuales < carta.costo) {
+                this.historial.unshift('❌ Falta energía.');
+                return;
+            }
+            // Límite estricto de 5 cartas en el tablero
+            if (this.campo_jugador.length >= 5) {
+                this.historial.unshift('❌ Tu zona de combate está llena (Máx 5).');
+                return;
+            }
+            this.esferas_actuales -= carta.costo;
+            let carta_instanciada = Object.assign({}, carta, { uid: Date.now() + Math.random() });
+            this.campo_jugador.push(carta_instanciada);
+            this.mano = this.mano.filter(c => c.id !== carta.id);
+            this.historial.unshift(`✨ Invocas a ${carta.name}.`);
+        },
+
+        seleccionarAtacante(guerrero) {
+            if (guerrero.tipo_ki === 'zero' || guerrero.tipo_ki === 'unknown') {
+                this.historial.unshift('❌ No puede declarar ataques.');
+                return;
+            }
+            this.guerrero_atacante = guerrero;
+            this.historial.unshift(`🎯 ${guerrero.name} en posición de ataque.`);
+        },
+
+        atacarObjetivo(objetivoCPU) {
+            if (!this.guerrero_atacante) return;
+            if (objetivoCPU) {
+                let diff = this.guerrero_atacante.atk - objetivoCPU.atk;
+                if (diff > 0) {
+                    this.cpu_lp = Math.max(0, this.cpu_lp - diff);
+                    this.historial.unshift(`⚔️ ${this.guerrero_atacante.name} fulmina a ${objetivoCPU.name}. Daño: ${diff}`);
+                    this.campo_cpu = this.campo_cpu.filter(c => c.uid !== objetivoCPU.uid);
+                } else if (diff < 0) {
+                    this.player_lp = Math.max(0, this.player_lp - Math.abs(diff));
+                    this.historial.unshift(`🚨 Pierdes el choque. Sufres: ${Math.abs(diff)}`);
+                    this.campo_jugador = this.campo_jugador.filter(c => c.uid !== this.guerrero_atacante.uid);
+                } else {
+                    this.historial.unshift('🛡️ Empate de poder. Ambos caen.');
+                    this.campo_jugador = this.campo_jugador.filter(c => c.uid !== this.guerrero_atacante.uid);
+                    this.campo_cpu = this.campo_cpu.filter(c => c.uid !== objetivoCPU.uid);
+                }
+            } else {
+                this.cpu_lp = Math.max(0, this.cpu_lp - this.guerrero_atacante.atk);
+                this.historial.unshift(`💥 ¡Ataque directo por ${this.guerrero_atacante.atk} LP!`);
+            }
+            this.guerrero_atacante = null;
+        },
+
+        robarCarta() {
+            // Roba 1 carta si el mazo tiene y si la mano tiene menos de 7
+            if (this.mazo_jugador.length > 0 && this.mano.length < 7) {
+                let nueva_carta = this.mazo_jugador.shift();
+                this.mano.push(nueva_carta);
+                this.historial.unshift(`🃏 Robas a ${nueva_carta.name} del mazo.`);
+            } else if (this.mano.length >= 7) {
+                this.historial.unshift('⚠️ Mano llena, no puedes robar más cartas.');
+            }
+        },
+
+        terminarTurno() {
+            this.turno++;
+            this.esferas_max = Math.min(10, this.esferas_max + 1);
+            this.esferas_actuales = this.esferas_max;
+
+            // Dinámica de robo al iniciar tu nuevo turno
+            this.robarCarta();
+
+            this.turnoCPU();
+        },
+
+        turnoCPU() {
+            while (this.campo_cpu.length < 3 && this.mazo_cpu.length > 0) {
+                let nc = this.mazo_cpu.shift();
+                this.campo_cpu.push(Object.assign({}, nc, { uid: Date.now() + Math.random() }));
+            }
+        },
+
+        reiniciarMecanicas() {
+            this.player_lp = 30000;
+            this.cpu_lp = 30000;
+            this.turno = 1;
+            this.esferas_max = 1;
+            this.esferas_actuales = 1;
+            this.campo_jugador = [];
+            this.campo_cpu = [];
+            this.guerrero_atacante = null;
         }
      }"
 >
-    <div
-        class="bg-gray-900 border border-gray-800 rounded-2xl p-4 flex flex-col justify-between space-y-4"
-    >
-        <div class="space-y-3">
-            <h2
-                class="text-xs font-bold tracking-wider text-gray-400 uppercase"
-            >
-                Indicadores de Vida
-            </h2>
-            <div class="bg-gray-950 p-3 rounded-xl border border-red-500/20">
-                <div class="flex justify-between text-xs mb-1">
-                    <span class="text-red-400 font-bold">OPONENTE (CPU)</span>
-                    <span
-                        class="font-mono text-gray-300"
-                        x-text="cpu_lp + ' LP'"
-                    ></span>
-                </div>
-                <div
-                    class="w-full bg-gray-800 rounded-full h-2 overflow-hidden"
-                >
-                    <div
-                        class="bg-red-500 h-2 transition-all duration-500"
-                        :style="`width: ${(cpu_lp/8000)*100}%`"
-                    ></div>
-                </div>
-            </div>
-            <div class="bg-gray-950 p-3 rounded-xl border border-green-500/20">
-                <div class="flex justify-between text-xs mb-1">
-                    <span class="text-green-400 font-bold"
-                        >TÚ (GUERRERO Z)</span
-                    >
-                    <span
-                        class="font-mono text-gray-300"
-                        x-text="player_lp + ' LP'"
-                    ></span>
-                </div>
-                <div
-                    class="w-full bg-gray-800 rounded-full h-2 overflow-hidden"
-                >
-                    <div
-                        class="bg-green-500 h-2 transition-all duration-500"
-                        :style="`width: ${(player_lp/8000)*100}%`"
-                    ></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="flex-grow flex flex-col min-h-[200px]">
-            <h3
-                class="text-xs font-bold tracking-wider text-gray-400 uppercase mb-2"
-            >
-                Registro de Acciones
-            </h3>
-            <div
-                class="bg-gray-950 rounded-xl p-3 border border-gray-800 flex-grow overflow-y-auto h-0 text-xs font-mono space-y-2 text-gray-400"
-            >
-                <template x-for="log in historial">
-                    <p class="border-b border-gray-900 pb-1" x-text="log"></p>
-                </template>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-2">
-            <button
-                @click="cargarMazo()"
-                class="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold p-2.5 rounded-xl text-xs transition flex justify-center items-center"
-            >
-                <span x-show="!loading">🔮 Robar Mazo</span>
-                <span x-show="loading" class="animate-spin text-sm">⏳</span>
-            </button>
-            <button
-                @click="reiniciarPartida()"
-                class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold p-2.5 rounded-xl text-xs transition"
-            >
-                ⚙️ Reiniciar
-            </button>
-        </div>
+    <div class="w-full xl:w-1/4 flex-shrink-0">
+        {% include 'game/componentes/consola.html' %}
     </div>
 
-    <div class="lg:col-span-3 flex flex-col justify-between space-y-6">
+    <div class="w-full xl:w-3/4 flex flex-col space-y-4">
+        <div class="flex-grow">{% include 'game/componentes/arena.html' %}</div>
+
         <div
-            class="bg-gray-950 border border-gray-900 rounded-2xl flex-grow grid grid-rows-2 p-4 gap-4 relative"
-            style="
-                background-image: radial-gradient(
-                    circle,
-                    rgba(31, 41, 55, 0.2) 1px,
-                    transparent 1px
-                );
-                background-size: 20px 20px;
-            "
+            class="bg-gray-900/40 border border-gray-800 rounded-2xl p-3 shadow-xl"
         >
-            <div
-                class="border-b border-gray-900/50 flex items-center justify-center gap-6"
-            >
-                <div
-                    class="w-24 h-36 border-2 border-dashed border-red-900/30 rounded-xl flex items-center justify-center text-xs text-red-900 font-bold tracking-wider uppercase"
-                >
-                    Zona CPU
-                </div>
-            </div>
-
-            <div class="flex items-center justify-center gap-6">
-                <div
-                    class="w-24 h-36 border-2 border-dashed border-green-900/30 rounded-xl flex items-center justify-center text-xs text-green-900 font-bold tracking-wider uppercase"
-                >
-                    Tu Zona
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-gray-900/50 border border-gray-800 rounded-2xl p-4">
             <h3
-                class="text-xs font-bold tracking-wider text-gray-400 uppercase mb-3"
+                class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1"
             >
                 Tu Mano Actual
             </h3>
 
             <div
-                x-show="mano.length === 0"
-                class="text-center py-6 text-sm text-gray-500 font-mono"
+                class="grid grid-cols-3 sm:grid-cols-7 gap-2 min-h-[140px] items-center justify-center"
             >
-                Tu mano está vacía. Presiona "Robar Mazo" para invocar
-                guerreros.
-            </div>
-
-            <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
                 <template x-for="carta in mano" :key="carta.id">
-                    <div
-                        class="bg-gray-950 border border-gray-800 hover:border-yellow-500/50 rounded-xl p-2 flex flex-col justify-between shadow-lg hover:shadow-yellow-500/5 transition-all duration-300 cursor-pointer transform hover:-translate-y-2 group"
+                    {% include 'game/componentes/tarjeta.html' %}
+                </template>
+
+                <template x-if="mano.length === 0">
+                    <p
+                        class="col-span-full text-center text-gray-600 font-mono text-sm"
                     >
-                        <div
-                            class="relative overflow-hidden rounded-lg bg-gray-900 h-28 flex items-center justify-center"
-                        >
-                            <img
-                                :src="carta.image"
-                                :alt="carta.name"
-                                class="h-full object-contain p-1 filter drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)] group-hover:scale-110 transition duration-300"
-                            />
-                            <span
-                                class="absolute bottom-1 right-1 bg-black/70 text-[10px] text-yellow-400 px-1.5 py-0.5 rounded font-mono"
-                                x-text="carta.race"
-                            ></span>
-                        </div>
-                        <div class="mt-2 space-y-1">
-                            <h4
-                                class="text-xs font-bold text-gray-200 truncate"
-                                x-text="carta.name"
-                            ></h4>
-                            <div
-                                class="flex justify-between text-[10px] font-mono text-gray-500"
-                            >
-                                <span>KI BASE:</span>
-                                <span
-                                    class="text-orange-400 font-bold"
-                                    x-text="carta.ki.split('.')[0] + 'M'"
-                                ></span>
-                            </div>
-                        </div>
-                    </div>
+                        Tu mano está vacía. Presiona "Invocar Mazo".
+                    </p>
                 </template>
             </div>
         </div>

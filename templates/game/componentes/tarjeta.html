@@ -1,0 +1,39 @@
+{% load static %}
+<div
+    @click="invocarA(carta)"
+    class="bg-gray-950 border border-gray-800 hover:border-amber-500 rounded-xl p-2 cursor-pointer transition-all duration-300 transform hover:-translate-y-1.5 flex flex-col justify-between shadow-lg h-full"
+>
+    <h4
+        class="text-[10px] font-extrabold text-gray-200 truncate text-center"
+        x-text="carta.name"
+    ></h4>
+
+    <div
+        class="flex justify-center items-center my-1 gap-0.5 bg-gray-900/60 py-0.5 rounded border border-gray-800 px-1"
+    >
+        <template x-for="(star, index) in Array.from({length: carta.costo})">
+            <img
+                :src="'/static/images/esferas/' + (index + 1) + '.png'"
+                class="w-3.5 h-3.5 object-contain drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
+            />
+        </template>
+    </div>
+
+    <div
+        class="h-16 bg-gray-900/40 rounded-lg flex items-center justify-center overflow-hidden border border-gray-900 p-1"
+    >
+        <img
+            :src="carta.image"
+            class="h-full object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
+        />
+    </div>
+
+    <div
+        class="text-center mt-1 bg-gray-950 p-0.5 rounded border border-gray-900"
+    >
+        <span
+            class="text-orange-400 font-mono font-bold text-[9px]"
+            x-text="'ATK: ' + carta.atk"
+        ></span>
+    </div>
+</div>

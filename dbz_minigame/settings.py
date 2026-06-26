@@ -50,6 +50,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
 ]
 
 ROOT_URLCONF = "dbz_minigame.urls"
@@ -119,3 +120,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = "static/"
+# direccion real de los archivos estaticos
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "static"),
+]
+# ESTO ES PARA RENDER: Aquí es donde Django juntará todo antes de subirlo
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
